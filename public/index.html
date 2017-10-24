@@ -13,42 +13,43 @@
 </head>
 <body>
     <div class="container">
-        <div id="loginscreen" class="container vertical-center">
+        <div id="loginscreen" class="container screen active vertical-center">
             <form class="form-signin" id="loginform">
                 <h2 class="form-signin-heading">Please sign in</h2>
                 <input id="username" class="input-block-level" type="text" placeholder="User Name">
                 <input id="password" class="input-block-level" type="password" placeholder="Password">
+                <div class="alert alert-error login-error" class="hide"></div>
                 <button id="login" class="btn btn-large btn-primary" type="submit">Submit</button>
             </form>
         </div>
-
-        <div id="pinscreen" class="container vertical-center">
+        <div id="pinscreen" class="container screen hide vertical-center">
             <form class="form-signin" id="pinform">
                 <h2 class="form-signin-heading">Enter your pin</h2>
                 <input id="pin" class="input-block-level" type="text" placeholder="User Name">
+                <div class="alert alert-error pin-error" class="hide"></div>
                 <button id="pinsubmit" class="btn btn-large btn-primary" type="submit">Submit Pin</button>
             </form>
         </div>
-
-        <div id="ergoscreen" class="container vertical-center">
+        <div id="ergoscreen" class="container screen hide vertical-center">
             <form class="form-signin" id="ergoform">
                 <h2 class="form-signin-heading">Ergonomics challenge</h2>
                 <p> Time to make all the right moves for this next authentication code</p>
+                <div class="alert alert-error ergo-error"></div>
                 <input id="ergo" class="input-block-level" type="text" placeholder="Enter the pin">
                 <button id="ergosubmit" class="btn btn-large btn-primary" type="submit">Verify Pin</button>
             </form>
         </div>
-
-        <div id="handscreen" class="container vertical-center ">
-
-            <h2 class="form-signin-heading">Let's Scan Stuff</h2>
-            </form>
-        </div>
     </div>
 
-    <script src="main.js"></script>
+     <div id="handscreen" class="hand">
+           <img class="fullscreenimg" src="hand.gif" border=0>
+        </div>
+
+   
     <script src="http://code.jquery.com/jquery.js"></script>
+    
     <script src="bootstrap/js/bootstrap.min.js"></script>
+     <script src="main.js"></script>
 </body>
 
 </html>

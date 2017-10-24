@@ -1,5 +1,6 @@
         // need to put this in a closure
-        
+
+$(document).ready(function(){
         
         var socket = io();
         socket.on('welcome', function (data) {
@@ -36,23 +37,15 @@
 
         var loginSubmit = document.getElementById("loginform");
 
+      
 
-
-        // Hide all the screens except the first one. 
-        function initialize() {
-            for (var i = 1; i < screens.length; i++) {
-                screens[i].style = "display:none";
-            }
-        }
-        initialize();
-
+    
         // Login Submit - 
         loginSubmit.onsubmit = function (eventObject) {
             eventObject.stopPropagation();
             eventObject.stopImmediatePropagation();
             processLogin();
             return false;
-
         }
 
         //CALLS
@@ -63,7 +56,8 @@
             if (user.length && pass.length) {
                 validateUserPass(user, pass);
             } else {
-                errorItem.innerHTML = "ERROR"
+                //errorItem.innerHTML = "ERROR"
+
                 incrementError();
             }
         }
@@ -75,9 +69,10 @@
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     //Failure
                     if (xhr.responseText == "0") {
-                        showError("Incorrect Password");
+                        showError("Ooops!Incorrect Password");
                     } else {
                         //Success
+                    
                         nextScreen();
                     }
                 }
@@ -88,18 +83,43 @@
             if(state> screens.length-1){return;}//SM to account for this. 
             for (var i = 0; i < screens.length; i++) {
                 if (i == state) {
-                    screens[i].style = "display:flex";
+                    $(screens[i]).removeClass('hide').addClass('active');
                 } else {
-                    screens[i].style = "display:none";
+                     $(screens[i]).removeClass('active').addClass('hide');
                 }
             }
         }
+        // need to edit this
         function showError(error) {
             //TODO - show a label
            // errorItem.innerHTML = error;
+           console.log("Error",error)
+           var item = null;
+           switch(state){
+            case 0:
+                item = $('.login-error');
+                break;
+            case 1 : 
+                item = $('.pin-error');
+                break;
+
+            case 2:
+                item =$('.ergo-error');
+                break;
+
+           }
+       
+            item.fadeIn(100);
+            
+            item.text(error);
             incrementError();
         }
 
+        $('input').focus(function(obj){
+            $('.alert').fadeOut(500);
+        })
+
+     
         function sendStateToAPI() {
             var params = "state="+state+"&errorTimes="+errorTimes;
             var xhr = sendRequest("POST","/url",params);
@@ -136,7 +156,6 @@
 
         /** Generic Send Request **/
         function sendRequest(url, type, params, handler) {
-
             var xhr = new XMLHttpRequest();
             xhr.open(type, url);
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -190,3 +209,5 @@
                 incrementError();
             }
         }
+
+});

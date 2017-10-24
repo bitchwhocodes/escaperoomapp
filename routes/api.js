@@ -13,12 +13,13 @@ router.post('/password',function(req,res,next){
 })
 
 router.post('/ergo',function(req,res,next){
-    var returnValue = (req.body.user==config.ERGO)?"1":"0";
+    var returnValue = (req.body.ergo==config.ERGO)?"1":"0";
     res.send(returnValue);
 })
 
 router.post('/pin',function(req,res,next){
-    var returnValue = (req.body.user==config.PIN)?"1":"0";
+
+    var returnValue = (req.body.pin==config.PIN)?"1":"0";
     res.send(returnValue);
 })
 
