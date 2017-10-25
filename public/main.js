@@ -1,15 +1,31 @@
         // need to put this in a closure
 
 $(document).ready(function(){
-        
+
+
+        const STATE_LOGIN = 0;
+        const STATE_PIN = 1;
+        const STATE_ERGO = 2;
+        const STATE_HAND = 3;
+      
+
+        var errorAudio = new Audio('sounds/CHORD.WAV');//wav is not the way to do things..
+        var successAudio = new Audio('sounds/RINGIN.WAV');
         var socket = io();
         socket.on('welcome', function (data) {
             console.log("socket: welcome");
             // Respond with a message including this clients' id sent from the server
+            //Stacey temp code
             socket.emit('i am client', { data: 'foo!', id: data.id });
         });
         // Will be fired when we see the hand near it. 
         socket.on('authenticated', function (data) {
+            // Stacey - We need to make sure we are in the right state to see this
+            if(state == STATE_HAND)
+            {
+                doAuthentication();
+            }
+           
             //IF WE ARE ON THE CORRECT SCREEN && WE HAVE AUTHENTICATION, WE CAN MOVE ON.
            
         })
@@ -21,6 +37,7 @@ $(document).ready(function(){
         var handScreen = document.getElementById("handscreen");
 
         var screens = [loginScreen, pinScreen, ergoScreen, handScreen];
+        
 
         //ITEMS
         var errorItem = document.getElementById("errors");
@@ -42,10 +59,17 @@ $(document).ready(function(){
     
         // Login Submit - 
         loginSubmit.onsubmit = function (eventObject) {
+      
+        
             eventObject.stopPropagation();
             eventObject.stopImmediatePropagation();
             processLogin();
             return false;
+        }
+
+        function doAuthentication(){
+            //STACEY TO REPLACE
+             $('body').css({"background-color":"#FF0000"})
         }
 
         //CALLS
@@ -57,7 +81,7 @@ $(document).ready(function(){
                 validateUserPass(user, pass);
             } else {
                 //errorItem.innerHTML = "ERROR"
-
+                showError("Ooops!Enter in a username or password!");
                 incrementError();
             }
         }
@@ -71,18 +95,18 @@ $(document).ready(function(){
                     if (xhr.responseText == "0") {
                         showError("Ooops!Incorrect Password");
                     } else {
-                        //Success
-                    
                         nextScreen();
                     }
                 }
             }
         }
         function nextScreen() {
+            successAudio.play();
             state++;
             if(state> screens.length-1){return;}//SM to account for this. 
             for (var i = 0; i < screens.length; i++) {
                 if (i == state) {
+                    // I hate myself for jquery
                     $(screens[i]).removeClass('hide').addClass('active');
                 } else {
                      $(screens[i]).removeClass('active').addClass('hide');
@@ -95,6 +119,7 @@ $(document).ready(function(){
            // errorItem.innerHTML = error;
            console.log("Error",error)
            var item = null;
+           errorAudio.play();
            switch(state){
             case 0:
                 item = $('.login-error');
@@ -209,5 +234,7 @@ $(document).ready(function(){
                 incrementError();
             }
         }
+
+       
 
 });

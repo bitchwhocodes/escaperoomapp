@@ -5,6 +5,7 @@
     padding: 19px 29px 29px;
     margin: 0 auto 20px;
     border: 1px solid #e5e5e5;
+    
 }
 
 .form-signin input[type='text'], .form-signin input[type='password'] {
@@ -40,6 +41,7 @@
   top: 0;
   left: 0;
 }
+
 
 .screen .hide{
     display:none;

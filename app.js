@@ -43,17 +43,19 @@ io.on('connection', function (socket) {
 });
 
 /* SERIAL CONNECTION
+*/
 
 const SerialPort = require('serialport');
 const Readline = SerialPort.parsers.Readline;
-const port = new SerialPort(process.argv[2],{baudRate:115200});
+const serialport = new SerialPort(process.argv[2],{baudRate:115200});
 
 const parser = new Readline();
-port.pipe(parser);
+serialport.pipe(parser);
 parser.on('data', function(data){
     console.log(data);
-    if(data.indexOf('id')!=-1){
+    if(data.indexOf('ID')!=-1){
         console.log("ID");
+        console.log("found stuff")
         // we can check for diffferent types of tags if we need to
         // need to send messsage to the interaface
         io.emit('authenticated',{response:1})
@@ -61,4 +63,4 @@ parser.on('data', function(data){
 });
 parser.on('close',console.log);
 parser.on('connection',console.log);
-*/
+
