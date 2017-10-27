@@ -298,6 +298,21 @@ $(document).ready(function(){
             }
             
         }
+
+        function getErrorMessage(){
+            var errorMessage ;
+            switch(state){
+                case STATE_LOGIN:
+                    errorMessage ="";
+                    break;
+
+            }   
+
+            return(errorMessage);
+        }
+
+
+        
        
 
         /* CLIPPY API

@@ -41,7 +41,7 @@ io.on('connection', function (socket) {
 
  });
 
-
+/*
 
 const SerialPort = require('serialport');
 const Readline = SerialPort.parsers.Readline;
@@ -58,6 +58,7 @@ parser.on('data', function(data){
 parser.on('close',console.log);
 parser.on('connection',function(data){
 });
+*/
 
 
 
