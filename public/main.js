@@ -1,16 +1,20 @@
         // need to put this in a closure
 
 $(document).ready(function(){
-
-
         const STATE_LOGIN = 0;
         const STATE_PIN = 1;
         const STATE_ERGO = 2;
         const STATE_HAND = 3;
-      
 
+        var clippyEndPoint = "http://clippypi:3000";
+        
+        
+      
+        var timeInterval=null;
+        var timeSeconds = 60;
         var errorAudio = new Audio('sounds/CHORD.WAV');//wav is not the way to do things..
-        var successAudio = new Audio('sounds/RINGIN.WAV');
+        var successAudio = new Audio('sounds/CHIMES.WAV');
+        //Socket Io
         var socket = io();
         socket.on('welcome', function (data) {
             console.log("socket: welcome");
@@ -20,23 +24,27 @@ $(document).ready(function(){
         });
         // Will be fired when we see the hand near it. 
         socket.on('authenticated', function (data) {
+        
             // Stacey - We need to make sure we are in the right state to see this
             if(state == STATE_HAND)
             {
-                doAuthentication();
+                if(data.response ==1){
+                    doAuthentication();
+                }else{
+                    doHumanHand();
+                }
             }
-           
             //IF WE ARE ON THE CORRECT SCREEN && WE HAVE AUTHENTICATION, WE CAN MOVE ON.
-           
-        })
-        
+        });
+
         //Started using Vanilla JS = added bootstrap after so could use jquery i suppose
         var loginScreen = document.getElementById("loginscreen");
         var pinScreen = document.getElementById("pinscreen");
         var ergoScreen = document.getElementById("ergoscreen");
         var handScreen = document.getElementById("handscreen");
+        var failScreen = document.getElementById("failscreen");
 
-        var screens = [loginScreen, pinScreen, ergoScreen, handScreen];
+        var screens = [loginScreen, pinScreen, ergoScreen, handScreen, failScreen];
         
 
         //ITEMS
@@ -53,23 +61,57 @@ $(document).ready(function(){
         var errorTimes,state = 0;
 
         var loginSubmit = document.getElementById("loginform");
-
-      
-
     
         // Login Submit - 
         loginSubmit.onsubmit = function (eventObject) {
-      
-        
             eventObject.stopPropagation();
             eventObject.stopImmediatePropagation();
             processLogin();
             return false;
         }
-
+        function sendHandMessage(){
+            console.log(socket);
+            socket.emit('hand');
+        }
         function doAuthentication(){
             //STACEY TO REPLACE
-             $('body').css({"background-color":"#FF0000"})
+            $('#handscreen').hide();
+            // $('body').css({"background-color":"#FF0000"})
+        }
+
+        function doHumanHand(){
+
+            $('#handscreen').hide();
+            $('#humanscreen').show();
+        }
+
+        function setTimer(){
+
+           timerInterval = setInterval(doTime, 1000);
+
+        }
+
+        function doTime(){
+            timeSeconds--;
+            var bgColor;
+            if(timeSeconds==-1){
+                clearInterval(timerInterval);
+                showFailure();
+            }else{
+               // bgColor = (timeSeconds%2)?"#FF0000":"#CC0000";
+                //$('body').css({'background-color':bgColor});
+                var seconds = pad(timeSeconds);
+                $('.seconds').text("00:00:"+timeSeconds);
+            }
+        }
+        function pad(seconds){
+
+            //return((seconds.length<2)?("0"+seconds):seconds));
+        }
+
+        function showFailure(){
+
+
         }
 
         //CALLS
@@ -77,6 +119,8 @@ $(document).ready(function(){
             var user = username.value;
             var pass = password.value;
             // Could put in robust validation here, but is it necessary?
+            sendMessageToClippy();
+            
             if (user.length && pass.length) {
                 validateUserPass(user, pass);
             } else {
@@ -101,8 +145,10 @@ $(document).ready(function(){
             }
         }
         function nextScreen() {
+
             successAudio.play();
             state++;
+
             if(state> screens.length-1){return;}//SM to account for this. 
             for (var i = 0; i < screens.length; i++) {
                 if (i == state) {
@@ -112,6 +158,7 @@ $(document).ready(function(){
                      $(screens[i]).removeClass('active').addClass('hide');
                 }
             }
+            
         }
         // need to edit this
         function showError(error) {
@@ -144,21 +191,30 @@ $(document).ready(function(){
             $('.alert').fadeOut(500);
         })
 
-     
-        function sendStateToAPI() {
-            var params = "state="+state+"&errorTimes="+errorTimes;
-            var xhr = sendRequest("POST","/url",params);
+        /*Need different headers for json */
+
+        function sendMessageToClippy(endPoint,data){
+          
+            var data={'message':'IS THIS WORKING'};
+            console.log("send message to clippy ",data);
+            var xhr = new XMLHttpRequest();   // new HttpRequest instance 
+            xhr.open("POST", 'http://clippypi:3000/message');
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+            xhr.send(JSON.stringify(data));
+            
             xhr.onreadystatechange = function(){
                 if (xhr.readyState == 4 && xhr.status == 200) {
                         //handle the return
+
                     }
             }
-            // make a call to the api to let clippy know. 
         }
+      
         function incrementError() {
             if (errorTimes == 2) {
                 errorTimes = 0;
-                sendStateToAPI();
+                //sendMessageToClippy("endPoint",{})
             }else{
                 errorTimes++;
             }
@@ -213,8 +269,13 @@ $(document).ready(function(){
             }
         }
 
+        function startHandProcess(){
+             sendHandMessage();
+             setTimer();
+        }
+
         function processErgo() {
-           
+           console.log("SEND HAND MESSAGE");
             if (ergo.value.length) {
                 var params = "ergo=" + ergo.value;
                 var xhr = new sendRequest('api/ergo', 'POST', params);
@@ -226,6 +287,9 @@ $(document).ready(function(){
                         } else {
                             //Success
                             //errorItem.innerHTML = "YAY"
+                           
+                            startHandProcess();
+                            console.log("Send Hand Message");
                             nextScreen();
                         }
                     }
@@ -236,5 +300,8 @@ $(document).ready(function(){
         }
 
        
+
+
+
 
 });

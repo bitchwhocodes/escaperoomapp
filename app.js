@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var cors = require('cors');
 
 var index = require('./routes/index');
 var api = require('./routes/api');
@@ -10,6 +11,8 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 app.use(express.static(__dirname + '/public'));
+app.use(cors());
+app.options("*",cors())
 
 // TO change using PROCESS.ENV
 var port = 3000;
@@ -26,13 +29,6 @@ app.use('/', index);
 app.use('/api',api);
 
 
-// TIMER 
-function sendTime() {
-    io.emit('time', { time: new Date().toJSON() });
-}
-
-// Send current time every 10 secs
-setInterval(sendTime, 10000);
 
 
 io.on('connection', function (socket) {
@@ -40,10 +36,16 @@ io.on('connection', function (socket) {
   socket.on('my other event', function (data) {
     console.log(data);
   });
-});
 
-/* SERIAL CONNECTION
-*/
+  socket.on('hand',function(socket){
+      console.log("hand has been called");
+      serialport.write("mode_scan");
+    })
+    // put any communciation here. 
+
+ });
+
+
 
 const SerialPort = require('serialport');
 const Readline = SerialPort.parsers.Readline;
@@ -52,15 +54,16 @@ const serialport = new SerialPort(process.argv[2],{baudRate:115200});
 const parser = new Readline();
 serialport.pipe(parser);
 parser.on('data', function(data){
-    console.log(data);
+
     if(data.indexOf('ID')!=-1){
-        console.log("ID");
-        console.log("found stuff")
-        // we can check for diffferent types of tags if we need to
-        // need to send messsage to the interaface
         io.emit('authenticated',{response:1})
     }
 });
 parser.on('close',console.log);
-parser.on('connection',console.log);
+parser.on('connection',function(data){
+});
+
+
+
+
 

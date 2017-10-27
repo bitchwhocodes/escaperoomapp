@@ -30,9 +30,36 @@
  
 }
 
+.title-scan, .seconds{
+    width:100%;
+    font-size:500%;
+    color:#ff0000;
+    text-align:center;
+    margin-top:100px;
+}
+
+.seconds{
+     width:100%;
+    font-size:500%;
+    color:#ff0000;
+    text-align:center;
+    margin-top:200px;
+}
+
+
+
+
+
+.human h1{
+    width:100%;
+    font-size:500%;
+    color:#ff0000;
+    text-align:center;
+}
+
 .fullscreenimg{
 
-      z-index: -999;
+  z-index: -999;
   min-height: 100%;
   min-width: 1024px;
   width: 100%;
