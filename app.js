@@ -32,20 +32,16 @@ app.use('/api',api);
 
 
 io.on('connection', function (socket) {
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
 
   socket.on('hand',function(socket){
       console.log("hand has been called");
-      serialport.write("mode_scan");
+      //serialport.write("mode_scan");
     })
     // put any communciation here. 
 
  });
 
-
+/*
 
 const SerialPort = require('serialport');
 const Readline = SerialPort.parsers.Readline;
@@ -62,6 +58,8 @@ parser.on('data', function(data){
 parser.on('close',console.log);
 parser.on('connection',function(data){
 });
+
+*/
 
 
 
