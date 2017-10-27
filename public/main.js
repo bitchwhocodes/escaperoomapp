@@ -14,8 +14,8 @@ $(document).ready(function(){
         // TIMER Interval
         var timeInterval=null;
         var timeSeconds = 60;
-        
-        var errorTimes,state = 0;
+        var errorTimes = 0;
+        var state = 0;
 
         // AUDIO 
         var errorAudio = new Audio('sounds/CHORD.WAV');//wav is not the way to do things..
@@ -127,7 +127,7 @@ $(document).ready(function(){
             } else {
                 //errorItem.innerHTML = "ERROR"
                 showError("Ooops!Enter in a username or password!");
-                incrementError();
+                //incrementError();
             }
         }
 
@@ -290,24 +290,34 @@ $(document).ready(function(){
         // 3 ERRORS for the form 
         // Can send a message to Clippy 
         function incrementError() {
+            console.log("error times"+errorTimes)
             if (errorTimes == 2) {
                 errorTimes = 0;
-                sendMessageToClippy(clippyEndPoint+"/message",{'message':'OOOPS ERROR'})
+                var message = getErrorMessage();
+                //console.log("Increment Error:message"+message);
+                sendMessageToClippy(clippyEndPoint+"/message",{'message':message})
             }else{
                 errorTimes++;
             }
             
         }
 
+        /* Get Error Message for CLIPPY 
+            need to put in other states 
+         */
         function getErrorMessage(){
             var errorMessage ;
             switch(state){
                 case STATE_LOGIN:
-                    errorMessage ="";
+                    errorMessage ="It looks like you are having problems logging on";
                     break;
+                case STATE_PIN:
+                    errorMessage = "WHERE IS YOUR PIN YO";
+                    break;
+                case STATE_ERGO = " Ergonomics error";
+                    break;                
 
             }   
-
             return(errorMessage);
         }
 
@@ -321,6 +331,7 @@ $(document).ready(function(){
          */
 
         function sendMessageToClippy(endPoint,data){
+            console.log("Send Message");
             var xhr = new XMLHttpRequest();   // new HttpRequest instance 
             xhr.open("POST", endPoint);
             xhr.setRequestHeader("Content-Type", "application/json");
