@@ -7,10 +7,18 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express'});
 });
 
-router.post('/password',function(req,res,next){
-    var returnValue = (req.body.user==config.USERNAME && req.body.pass==config.PASSWORD)?"1":"0";
-    res.send(returnValue);
-})
+router.post('/password', function(req, res, next) {
+	console.log(req.body);
+	if (req.body.username != config.USERNAME) {
+		return res.send({"result": "wrong_username", "username": req.body.username});
+	}
+	
+	if (req.body.password != config.PASSWORD) {
+		return res.send({"result": "wrong_password"});
+	}
+	
+	return res.send({"result": "success"});
+});
 
 router.post('/ergo',function(req,res,next){
     var returnValue = (req.body.ergo==config.ERGO)?"1":"0";

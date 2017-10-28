@@ -4,10 +4,8 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src='/socket.io/socket.io.js'></script>
-    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
-        crossorigin="anonymous">
-    <link rel="stylesheet" href="/bootstrap/css/bootstrap-theme.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
-        crossorigin="anonymous">
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="style.css">
 
 </head>
@@ -15,7 +13,7 @@
    
     <div class="container">
        
-        <div id="loginscreen" class="container screen active vertical-center">
+        <div id="loginscreen" class="container screen vertical-center">
             <form class="form-signin" id="loginform">
                 <h2 class="form-signin-heading">Please sign in</h2>
                 <input id="username" class="input-block-level" type="text" placeholder="User Name">
@@ -24,15 +22,15 @@
                 <button id="login" class="btn btn-large btn-primary" type="submit">Submit</button>
             </form>
         </div>
-        <div id="pinscreen" class="container screen hide vertical-center">
+        <div id="pinscreen" class="container screen vertical-center">
             <form class="form-signin" id="pinform">
                 <h2 class="form-signin-heading">Enter your pin</h2>
-                <input id="pin" class="input-block-level" type="text" placeholder="User Name">
+                <input id="pin" class="input-block-level" type="text" placeholder="PIN">
                 <div class="alert alert-error pin-error" class="hide"></div>
                 <button id="pinsubmit" class="btn btn-large btn-primary" type="submit">Submit Pin</button>
             </form>
         </div>
-        <div id="ergoscreen" class="container screen hide vertical-center">
+        <div id="ergoscreen" class="container screen vertical-center">
             <form class="form-signin" id="ergoform">
                 <h2 class="form-signin-heading">Ergonomics challenge</h2>
                 <p> Time to make all the right moves for this next authentication code</p>

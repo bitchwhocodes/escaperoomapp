@@ -1,7 +1,5 @@
-        // need to put this in a closure
-
 $(document).ready(function(){
-        //States 
+        // States 
         const STATE_LOGIN = 0;
         const STATE_PIN = 1;
         const STATE_ERGO = 2;
@@ -9,101 +7,93 @@ $(document).ready(function(){
         const STATE_SUCCESS = 4;
         const STATE_FAIL = 5;
         
-
-        var clippyEndPoint = "http://clippypi:3000";
-        // TIMER Interval
-        var timeInterval=null;
+		// Setup
+        var clippyEndPoint = "http://clippypi";
+        var timeInterval = null; // TIMER Interval
         var timeSeconds = 60;
         var errorTimes = 0;
         var state = 0;
-
-        // AUDIO 
-        var errorAudio = new Audio('sounds/CHORD.WAV');//wav is not the way to do things..
+	
+		// Clippy Messages
+		const welcome = {"message": "Welcome to ..0@2#%d^&*443-0-4fdsg*j--+33jj", "icon":"note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const noUserPass = {"message": "Hey, there. Do you even know how to use a computer? <b>You have to type a username and a password!</b>", "icon": "keyboard.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const noUserWithPass = {"message": "You gotta type in a username, genius.", "icon": "keyboard.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const rightUsername = {"message": "<b>{usernames}</b>. What were you thinking?", "icon": "none", "sound": "Clippy_TransformToCheckMark.wav"};
+		const TooManyWrongUsernames = {"message": "You know there is a <b>pattern</b>, right?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const TooManyWrongPasswords = {"message": "Do you know how to <b>sum</b>?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		
+		// State
+		var triedBlankUserPass = false;
+		var triedBlankUserWithPass = false;
+		
+		const WrongUsernameHintThreshold = 3;
+		var wrongUsernameTries = 0;
+		
+		const usernameHistoryMaxCount = 6;
+		var usernameHistory = [];
+		var foundRightUsername = false;
+		
+		const WrongPasswordHintThreshold = 3;
+		var wrongPasswordTries = 0;
+		
+        // Audio 
+        var errorAudio = new Audio('sounds/CHORD.WAV'); //wav is not the way to do things..
         var successAudio = new Audio('sounds/CHIMES.WAV');
         var failedAudio = new Audio('sounds/DING.WAV');
        
-       
-        /*
-            SOCKET COMMUNICATION ---------------------------------------------
-         */
+		sendMessageToClippy(welcome);
+		
+        /* SOCKET COMMUNICATION */
         var socket = io();
+		
         // Will be fired when we see the hand near it. 
         socket.on('authenticated', function (data) {
             // Stacey - We need to make sure we are in the right state to see this
             if(state == STATE_HAND)
             {
-                if(data.response ==1){
+                if(data.response ==1) {
                     doAuthentication();
-                }else{
-                    //doHumanHand();
+                } else {
+                    //doHumanHand(); // Not working
                 }
             }
-            //IF WE ARE ON THE CORRECT SCREEN && WE HAVE AUTHENTICATION, WE CAN MOVE ON.
+        });
+	
+		// SCREENS
+        var screens = [];
+		screens.push({'name':'login',   'state':STATE_LOGIN,   'screen': "#loginscreen"});
+        screens.push({'name':'pin',     'state':STATE_PIN,     'screen': "#pinscreen"});
+        screens.push({'name':'ergo',    'state':STATE_ERGO,    'screen': "#ergoscreen"});
+        screens.push({'name':'hand',    'state':STATE_HAND,    'screen': "#handscreen"});
+        screens.push({'name':'success', 'state':STATE_SUCCESS, 'screen': "#successscreen"})
+        screens.push({'name':'fail',    'state':STATE_FAIL,    'screen': "#failscreen"});
+        
+
+        // ITEMS
+        var errorItem = document.getElementById("errors");
+	
+		// Form Events
+		$("#loginform").submit(function (event) {
+			event.preventDefault();
+            processLogin($("#username").val(), $("#password").val());
+        });
+		
+		$("#pinform").submit(function (event) {
+			event.preventDefault();
+            processPin($("#pin").val());
+        });
+		
+		$("#ergoform").submit(function (event) {
+			event.preventDefault();
+            processErgo(processPin($("#ergo").val()));
         });
 
-        //Started using Vanilla JS = added bootstrap after so could use jquery i suppose
-        // Reference to elements we need. 
-        var loginScreen = document.getElementById("loginscreen");
-        var pinScreen = document.getElementById("pinscreen");
-        var ergoScreen = document.getElementById("ergoscreen");
-        var handScreen = document.getElementById("handscreen");
-        var failScreen = document.getElementById("failscreen");
-        var successScreen = document.getElementById("successscreen");
-
-        //var screens = [loginScreen, pinScreen, ergoScreen, handScreen, failScreen];
-        var screens =[{'name':'login','state':STATE_LOGIN,'screen':loginScreen}];
-        screens.push({'name':'pin','state':STATE_PIN,'screen':pinScreen});
-        screens.push({'name':'ergo','state':STATE_ERGO,'screen':ergoScreen});
-        screens.push({'name':'hand','state':STATE_HAND,'screen':handScreen});
-        screens.push({'name':'success','state':STATE_SUCCESS,'screen':successScreen})
-        screens.push({'name':'fail','state':STATE_FAIL,'screen':failScreen});
-        
-
-        //ITEMS
-        var errorItem = document.getElementById("errors");
-        var username = document.getElementById("username");
-        var password = document.getElementById("password");
-        var pin = document.getElementById("pin")
-        var ergo = document.getElementById("ergo");
-
-        //buttons
-        var pinForm = document.getElementById("pinform");
-        var ergoForm = document.getElementById("ergoform");
-
-
-        var loginSubmit = document.getElementById("loginform");
-    
-        // Login Submit - 
-        loginSubmit.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processLogin();
-            return false;
-        }
-
-         
-        ergoForm.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processErgo();
-            return false;
-        }
-
-        pinForm.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processPin();
-            return false;
-
-        };
-
-         $('input').focus(function(obj){
+		// Other
+        $('input').focus(function(obj){
             $('.alert').fadeOut(500);
         })
-
-
-        
-
+		
+		// End Puzzle
         function showFailure(){
             showScreen(STATE_FAIL);
             //failedAudio.play();
@@ -113,70 +103,85 @@ $(document).ready(function(){
             showScreen(STATE_SUCCESS);
         }
 
-
-
-        //CALLS
-        function processLogin() {
-            var user = username.value;
-            var pass = password.value;
-            // Could put in robust validation here, but is it necessary?
-            //sendMessageToClippy();
-            
-            if (user.length && pass.length) {
-                validateUserPass(user, pass);
-            } else {
-                //errorItem.innerHTML = "ERROR"
-                showError("Ooops!Enter in a username or password!");
-                //incrementError();
-            }
+        // Calls
+        function processLogin(username, password) {
+            console.log("Username: " + username);
+			console.log("Password: " + password);
+			
+			if (!username.length && !password.length) {
+				if (!triedBlankUserPass)
+				{
+					sendMessageToClippy(noUserPass);
+					triedBlankUserPass = true;
+				}
+				
+				return showError("Ooops! Enter in a username or password!");
+			}
+			else if (!username.length && password.length) {
+				if (!triedBlankUserWithPass)
+				{
+					sendMessageToClippy(noUserWithPass);
+					triedBlankUserWithPass = true;
+				}
+			}
+			else {
+				$.post("api/password", {"username": username, "password": password})
+				.done(function(data) {
+					console.log(data);
+					switch(data.result) {
+						case "success":
+							return $("#loginscreen").fadeOut(500, function() {
+								successAudio.play();
+								return $("#pinscreen").fadeIn(500);
+							});
+							break;
+						case "wrong_username":
+							if (!foundRightUsername)
+							{
+								usernameHistory.push(data.username);
+								
+								// Clean up history
+								if (usernameHistory.length > usernameHistoryMaxCount) {
+									usernameHistory.shift();
+								}
+							
+								// Hint
+								wrongUsernameTries++;
+								
+								if (wrongUsernameTries >= WrongUsernameHintThreshold) {
+									wrongUsernameTries = 0;
+									sendMessageToClippy(TooManyWrongUsernames);
+								}
+							}
+							
+							return showError("Ooops! Wrong Username!");
+							break;
+						case "wrong_password":
+							// Show usernames flavor
+							if (!foundRightUsername && wrongUsernameTries > 0)
+							{
+								rightUsername.message = rightUsername.message.replace("{usernames}", usernameHistory.join(", "));
+								sendMessageToClippy(rightUsername);
+								foundRightUsername = true;
+							}
+							
+							// Hint
+							wrongPasswordTries++;
+							
+							if (wrongPasswordTries >= WrongPasswordHintThreshold) {
+								wrongPasswordTries = 0;
+								sendMessageToClippy(TooManyWrongPasswords);
+							}
+								
+							return showError("Ooops! Wrong Password!");
+							break;
+						default:
+							console.log("Something went wrong");
+					}
+				});
+			}
         }
 
-        function validateUserPass(user, pass) {
-            var params = "user=" + user + "&pass=" + pass;
-            var xhr = new sendRequest('api/password', 'POST', params);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    //Failure
-                    if (xhr.responseText == "0") {
-                        showError("Ooops!Incorrect Password");
-                    } else {
-                        nextScreen();
-                    }
-                }
-            }
-        }
-        function nextScreen() {
-
-            successAudio.play();
-            
-            state++;
-
-            if(state> screens.length-1){return;}//SM to account for this. 
-                for (var i = 0; i < screens.length; i++) {
-                    var screen = $(screens[i].screen);
-                    if (i == state) {
-                        // I hate myself for jquery
-                        screen.removeClass('hide').addClass('active');
-                    } else {
-                        screen.removeClass('active').addClass('hide');
-                    }
-                }
-        }
-
-        function showScreen(screenState){
-            for (var i = 0; i < screens.length; i++) {
-                    var screen = $(screens[i].screen);
-                    var name = screens[i].state;
-                    if (name == screenState) {
-                        // I hate myself for jquery
-                        state = screenState;
-                        screen.removeClass('hide').addClass('active');
-                    } else {
-                        screen.removeClass('active').addClass('hide');
-                    }
-                }
-
-        }
         // need to edit this
         function showError(error) {
             //TODO - show a label
@@ -207,11 +212,6 @@ $(document).ready(function(){
        
 
         /*Need different headers for json */
-
-        
-      
-       
-
         
         /* PROCESS PIN 
             Called to submit the form data on the process pin screen. 
@@ -269,11 +269,10 @@ $(document).ready(function(){
             var xhr = new XMLHttpRequest();
             xhr.open(type, url);
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            xhr.setRequestHeader("Content-length", params.length);
-            xhr.setRequestHeader("Connection", "close");
+            //xhr.setRequestHeader("Content-length", params.length);
+            //xhr.setRequestHeader("Connection", "close");
             xhr.send(params);
             return xhr;
-
         }
 
 
@@ -293,47 +292,24 @@ $(document).ready(function(){
             console.log("error times"+errorTimes)
             if (errorTimes == 2) {
                 errorTimes = 0;
-                var message = getErrorMessage();
+                var data = getClippyData();
                 //console.log("Increment Error:message"+message);
-                sendMessageToClippy(clippyEndPoint+"/message",{'message':message})
             }else{
                 errorTimes++;
             }
             
         }
 
-        /* Get Error Message for CLIPPY 
-            need to put in other states 
-         */
-        function getErrorMessage(){
-            var errorMessage ;
-            switch(state){
-                case STATE_LOGIN:
-                    errorMessage ="It looks like you are having problems logging on";
-                    break;
-                case STATE_PIN:
-                    errorMessage = "WHERE IS YOUR PIN YO";
-                    break;
-                case STATE_ERGO = " Ergonomics error";
-                    break;                
-
-            }   
-            return(errorMessage);
-        }
-
-
-        
-       
 
         /* CLIPPY API
             Need to pass endpoint --> ie. clippyEndPoint+"/message";
             Need to pass data --> {'message':'put your message here'}
          */
 
-        function sendMessageToClippy(endPoint,data){
+        function sendMessageToClippy(data){
             console.log("Send Message");
             var xhr = new XMLHttpRequest();   // new HttpRequest instance 
-            xhr.open("POST", endPoint);
+            xhr.open("POST", clippyEndPoint + "/message");
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
             xhr.send(JSON.stringify(data));
