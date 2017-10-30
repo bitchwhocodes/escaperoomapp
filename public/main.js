@@ -1,20 +1,33 @@
 $(document).ready(function(){
         // Setup
-        var DEBUG_MODE = true;
+        var DEBUG_MODE = false;
         var clippyEndPoint = "http://localhost:3001";
 
-        const PromptMaxLength = 40;
+        const PromptMaxLength = 30;
         const PromptMaxLines = 20;
+        const ShutdownPassword = "1234";
 
         // Timers
         var startTime;
+        var globalInterval;
         const TimeLimit = 45*60; // 45 minutes
-        const ClippyTimer = DEBUG_MODE ? 1000 : 120*1000; // Time for clippy to start helping.
-        const HalBeepingRate = 3500; // milliseconds
-        const LoadTransitionTime = DEBUG_MODE ? 2000 : 20000; // milliseconds
+        const ClippyTimer = DEBUG_MODE ? 1000 : 60*1000; // Time for clippy to start helping.
+        const LoadTransitionTime = DEBUG_MODE ? 2000 : 10000; // milliseconds
         const IllegalOperationTimeout = DEBUG_MODE ? 3000 : 10000; // milliseconds
         const CommandPromptDelay = DEBUG_MODE ? 1000 : 10000;
         
+        // Questionnaire
+        const initialQuestion = "coin";
+        var currentQuestion;
+        const questions = {
+            "coin": {"answer": "coin", "text": "<div>What has a head and a tail, but no body?</div>", "final": false, "next": "incor" },
+            "incor": {"answer": "incorrectly", "text": "<div>Which word in the dictionary is spelled incorrectly?</div>", "final": false, "next": "window"},
+            "window": {"answer": "window", "text": "<div>What invention lets you look right through a wall?</div>", "final": false, "next": "tomorrow"},
+            "tomorrow": {"answer": "tomorrow", "text": "<div>What is always coming but never arrives?</div>", "final": false, "next": "hole"},      
+            "hole": {"answer": "hole", "text": "<div>What gets bigger every time you take from it?</div>", "final": false, "next": "map"},
+            "map": {"answer": "map", "text": "<div>What has cities, but no houses; forests, but no trees;</div><div>and water, but no fish?</div>", "final": true}
+        };
+
 		// Clippy Messages
 		const welcome = {"message": "Welcome to Cl.0@2#%d^&*443-0-4fdsg*j--+33jj", "icon":"note.png", "sound": "Clippy_TransformToCheckMark.wav"};
 		const noUserPass = {"message": "Hey, there. Do you even know how to use a computer? <b>You have to type a username and a password!</b>", "icon": "keyboard.png", "sound": "Clippy_TransformToCheckMark.wav"};
@@ -23,6 +36,8 @@ $(document).ready(function(){
 		const TooManyWrongUsernames = {"message": "You know there is a <b>pattern</b>, right?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
         const TooManyWrongPasswords = {"message": "Do you know how to <b>sum</b>?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
         const BobTakingOverMessage = {"message": "Hey, there. Bob is corrupting itself to subvert the system. I'll see if I can load a command prompt!", "icon": "console_prompt.png", "sound": "Clippy_TransformToCheckMark.wav"};
+        const ShutdownTheSystem = {"message": "I got a command prompt, you need to find a way to shutdown the system!", "icon": "console_prompt.png", "sound": "Clippy_TransformToCheckMark.wav"};
+        const VictoryMessage = {"message": "Hey, there. You saved all of us from B.O.B 9000! Thanks for playing.", "icon": "trust0.png", "sound": "TADA.wav"};
 		
         // State
 		var triedBlankUserPass = false;
@@ -42,15 +57,16 @@ $(document).ready(function(){
         var illegalDialogClicks = 0;
         var launchedCommandPrompt = false;
         
-        var halBeeper;
+        var questionMode = false;
 
         // Audio 
         var errorAudio = new Audio('sounds/CHORD.WAV'); //wav is not the way to do things..
         var successAudio = new Audio('sounds/CHIMES.WAV');
         var failedAudio = new Audio('sounds/DING.WAV');
         var startupAudio = new Audio('sounds/win-startup.wav');
-        var halBeepAudio = new Audio('sounds/hal-beep.wav');
-       	
+        var logoffAudio = new Audio('sounds/LOGOFF.wav');
+        var notifyAudio = new Audio('sounds/NOTIFY.wav');
+
         /* SOCKET COMMUNICATION */
         var socket = io();
 		
@@ -75,11 +91,12 @@ $(document).ready(function(){
         $("#promptscreen").hide();
         $("#ergoscreen").hide();
         $("#win31screen").hide();
+        $("#handscreen").hide();
+        $("#victoryscreen").hide();
 
         sendMessageToClippy(welcome);
         startTimer();
         startAnimations();
-        setCommandPrompt();
         startTimeouts();
 
 		// Form Events
@@ -300,6 +317,10 @@ $(document).ready(function(){
                             launchedCommandPrompt = true;
                             setTimeout(function() {
                                 console.log("Prompt started!");
+                                failedAudio.play();
+                                setCommandPrompt();
+                                sendMessageToClippy(ShutdownTheSystem);
+                                $("#win31screen").hide();
                                 $("#promptscreen").show();
                             }, CommandPromptDelay);
                         }
@@ -315,31 +336,6 @@ $(document).ready(function(){
             showIllegalOp();
 
             return $("#illegalopscreen").show();
-        }
-
-        // Logic @ Command Prompt
-
-        function processErgo() {
-            if (ergo.value.length) {
-                var params = "ergo=" + ergo.value;
-                var xhr = new sendRequest('api/ergo', 'POST', params);
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState == 4 && xhr.status == 200) {
-                        //Failure
-                        if (xhr.responseText == "0") {
-                            showError("Incorrect ERGO");
-                        } else {
-                            //Success
-                            //errorItem.innerHTML = "YAY"
-                           
-                            startHandProcess();
-                            nextScreen();
-                        }
-                    }
-                }
-            } else {
-                incrementError();
-            }
         }
 
         /** Generic Send Request **/
@@ -388,13 +384,22 @@ $(document).ready(function(){
             It can start the animation or whatever it needs to do
         */
 
-        function sendHandMessage(){
+        function sendHandMessage() {
             console.log("SendHandMessage");
             socket.emit('hand');
+            
+            // REMOVE
+            doAuthentication();
         }
         /**/
-        function doAuthentication(){
-           showSuccess();
+        function doAuthentication() {
+            $("#handscreen").hide();
+            logoffAudio.play();
+            $("#victoryscreen").show();
+            clearInterval(globalInterval);
+            setTimeout(function() {
+                sendMessageToClippy(VictoryMessage);
+            }, 4000);
         }
 
         // Pad string
@@ -405,7 +410,7 @@ $(document).ready(function(){
         // Start global timer
         function startTimer() {
             startTime = Date.now();
-            setInterval(function() {
+            globalInterval = setInterval(function() {
                 var diff = Math.floor((Date.now() - startTime) / 1000);
                 var timeLeft = TimeLimit - diff;
                 var m = Math.floor(timeLeft / 60);
@@ -416,9 +421,6 @@ $(document).ready(function(){
 
         function startTimeouts() {
             setTimeout(function() {
-                if (halBeeper)
-                    clearInterval(halBeeper);
-
                 return transition($("#halscreen"), $("#loadscreen"), LoadTransitionTime, startupAudio, function() {
                     return setTimeout(function() { 
                         return transition($("#loadscreen"), $("#loginscreen"), 1000, null, function() {
@@ -440,14 +442,20 @@ $(document).ready(function(){
                 if (event.key === "Enter")
                 {
                     event.preventDefault();
+
                     $("#command").attr("contenteditable","false");
                     $("#command").off();
 
                     console.log("Running command: " + $("#command").text());
                     processCommandPrompt($("#command").text());
-
                     $("#command").attr("id","command-completed");
-                    $("#prompt").append(`<div id="prompt-input">C:\\><span contenteditable="true" id="command"></span></div>`)
+
+                    if (questionMode) {
+                        $("#prompt").append(`<div id="prompt-input">Answer: <span contenteditable="true" id="command"></span></div>`);
+                    }
+                    else {
+                        $("#prompt").append(`<div id="prompt-input">C:\\><span contenteditable="true" id="command"></span></div>`);
+                    }
                     
                     $("#command").on('keydown paste', function(event) {
                         var keypressed = event.keyCode;
@@ -455,7 +463,10 @@ $(document).ready(function(){
                             return;
                         }
         
-                        if ((keypressed >=65 && keypressed <= 90) || (keypressed >=48 && keypressed <= 57) || (keypressed >= 96 && keypressed <= 105)){
+                        if ((keypressed >=65 && keypressed <= 90) || (keypressed >=48 && keypressed <= 57) || (keypressed >= 96 && keypressed <= 105)
+                            || keypressed == 32
+                            || keypressed == 189
+                            || keypressed == 187){
                             if ($(this).text().length >= PromptMaxLength)
                             {
                                 event.preventDefault();
@@ -506,7 +517,30 @@ $(document).ready(function(){
         }
 
         function processCommandPrompt(command) {
-            if (command === "help") {
+            var cmd = command.trim();
+
+            if (questionMode) {
+                if (questions[currentQuestion]["answer"] === cmd) {
+                    if (questions[currentQuestion]["final"]) {
+                        successAudio.play();
+                        $("#promptscreen").hide();
+                        $("#handscreen").show();
+                        sendHandMessage();
+                    }
+                    else {
+                        notifyAudio.play();
+                        currentQuestion = questions[currentQuestion]["next"];
+                        $("#prompt").append(questions[currentQuestion]["text"]);
+                    }
+                }
+                else {
+                    errorAudio.play();
+                    $("#prompt").append("<div>Wrong answer!</div>");
+                }
+                return;
+            }
+            
+            if (cmd === "help") {
                 $("#prompt").append("<div>Commands available:</div>");
                 $("#prompt").append("<div><br></div>");
                 $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;help</div>");
@@ -515,15 +549,40 @@ $(document).ready(function(){
                 $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;shutdown</div>");
                 $("#prompt").append("<div><br></div>");
             }
+            else if (cmd === "info") {
+                $("#prompt").append("<div>I am completely operational, and all my circuits are functioning</div>");
+                $("#prompt").append("<div>perfectly.</div>");
+            }
+            else if (cmd === "me") {
+                $("#prompt").append("<div>I am the B.O.B 9000. You may call me Bob.</div>");
+            }
+            else if (cmd === "shutdown") {
+                $("#prompt").append("<div>Usage:</div>");
+                $("#prompt").append("<div><br></div>");
+                $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;shutdown password</div>");
+            }
+            else if (cmd === "shutdown password") {
+                $("#prompt").append("<div>Do you think I would use password as a password!?</div>");
+            }
+            else if (cmd.startsWith("shutdown ")) {
+                var password = cmd.slice("shutdown ".length);
+
+                if (password === ShutdownPassword) {
+                    $("#prompt").append("<div>Initiating shutdown procedure...</div>");
+                    questionMode = true;
+                    currentQuestion = initialQuestion;
+                    $("#prompt").append(questions[currentQuestion]["text"]);
+                }
+                else {
+                    $("#prompt").append("<div>Incorrect</div>");
+                }
+            }
+            else {
+                $("#prompt").append("<div>" + cmd + ": not found</div>");
+            }
         }
 
         function startAnimations() {
-            if (!DEBUG_MODE) {
-                halBeeper = setInterval(function(){
-                    halBeepAudio.play();
-               }, HalBeepingRate);
-            }
-            
             var dotsCounter = 0;
 
             setInterval(function() {
