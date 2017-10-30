@@ -300,6 +300,7 @@ $(document).ready(function(){
                             launchedCommandPrompt = true;
                             setTimeout(function() {
                                 console.log("Prompt started!");
+                                failedAudio.play();
                                 $("#promptscreen").show();
                             }, CommandPromptDelay);
                         }

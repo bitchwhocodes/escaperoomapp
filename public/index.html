@@ -40,18 +40,16 @@
     <div id="win31screen" class="screen">
         <div class="win31title">Microsoft Windows 3.1 Clippy Edition<br>════════════════════════════════════</div>
 
-        <div id="loginscreen" class="screen">
-            <div class="vertical-center">
-                <form class="form-signin" id="loginform">
-                    <h2 class="form-signin-heading">Please sign in</h2>
-                    <input id="username" class="input-block-level" type="text" placeholder="User Name">
-                    <input id="password" class="input-block-level" type="password" placeholder="Password">
-                    <div class="alert alert-error login-error" class="hide"></div>
-                    <button id="login" class="btn btn-large btn-primary screen-button" type="submit">Submit</button>
-                </form>
-            </div>
+        <div id="loginscreen" class="win31subscreen vertical-center">
+            <form class="form-signin" id="loginform">
+                <h2 class="form-signin-heading">Please sign in</h2>
+                <input id="username" class="input-block-level" type="text" placeholder="User Name">
+                <input id="password" class="input-block-level" type="password" placeholder="Password">
+                <div class="alert alert-error login-error" class="hide"></div>
+                <button id="login" class="btn btn-large btn-primary screen-button" type="submit">Submit</button>
+            </form>
         </div>
-        <div id="pinscreen" class="screen vertical-center">
+        <div id="pinscreen" class="win31subscreen vertical-center">
             <form class="form-signin" id="pinform">
                 <h2 class="form-signin-heading">Enter your pin</h2>
                 <input id="pin" class="input-block-level" type="text" placeholder="PIN">
@@ -59,7 +57,7 @@
                 <button id="pinsubmit" class="btn btn-large btn-primary screen-button" type="submit">Submit Pin</button>
             </form>
         </div>
-        <div id="phonefactorscreen" class="screen vertical-center">
+        <div id="phonefactorscreen" class="win31subscreen vertical-center">
             <form class="form-signin" id="phoneform">
                 <img id="phone" class="center" src="images/phone.png" />
                 <h2 class="form-signin-heading">Your Admin requires phone<br>factor authentication.<br>
@@ -69,7 +67,7 @@
                 <button id="phoneretry" class="btn btn-large btn-primary screen-button disabled" type="submit">Retry</button>
             </form>
         </div>
-        <div id="ergoscreen" class="screen vertical-center">
+        <div id="ergoscreen" class="win31subscreen vertical-center">
             <form class="form-signin" id="ergoform">
                 <h2 class="form-signin-heading">Ergonomics challenge</h2>
                 <p> Time to make all the right moves for this next authentication code</p>
