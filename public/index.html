@@ -37,6 +37,19 @@
         </div>
     </div>
 
+    <div id="handscreen" class="screen vertical-center win98">
+        <div class='window'>
+            <div class='header'>
+                <img class='icon' src='icons/exe.gif' srcset='icons/exe@2x.gif 32w, icons/exe@4x.gif 64w' /> Hand Scanner
+            </div>
+            <img src="images/hand.gif" />
+        </div>
+    </div>
+
+    <div id="victoryscreen" class="fullscreen screen vertical-center">
+        <center>It's now safe to turn off<br>your computer</center>
+    </div>
+
     <div id="win31screen" class="screen">
         <div class="win31title">Microsoft Windows 3.1 Clippy Edition<br>════════════════════════════════════</div>
 
@@ -67,27 +80,9 @@
                 <button id="phoneretry" class="btn btn-large btn-primary screen-button disabled" type="submit">Retry</button>
             </form>
         </div>
-        <div id="ergoscreen" class="win31subscreen vertical-center">
-            <form class="form-signin" id="ergoform">
-                <h2 class="form-signin-heading">Ergonomics challenge</h2>
-                <p> Time to make all the right moves for this next authentication code</p>
-                <div class="alert alert-error ergo-error"></div>
-                <input id="ergo" class="input-block-level" type="text" placeholder="Enter the pin">
-                <button id="ergosubmit" class="btn btn-large btn-primary" type="submit">Verify Pin</button>
-            </form>
-        </div>
+
         <div id="illegalopscreen" class="vertical-center win98"></div>
 
-        <div id="handscreen" class="hand hide">
-            <h1 class="title-scan">Please Scan Hand for Authentication!!</h1>
-            <p class="seconds">00:1:00</p>
-            <img class="fullscreenimg" src="images/hand.gif" border=0>
-        </div>
-
-        <!-- TEMPORARY SCREEN FOR WHAT WE NEED -->
-        <div id="failscreen" class="windows hide">
-            <img class="fullscreenimg" src="images/fail.gif" border=0>
-        </div>
         <div id="successscreen" class="windows hide">
             <img class="fullscreenimg" src="images/dinocat.gif" border=0>
         </div>

@@ -12,6 +12,7 @@ body {
 }
 
 #win31screen {
+    background-color: #0B0A38;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -20,6 +21,13 @@ body {
     width: 60%;
 }
 
+#handscreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 160;
+}
 .win31title {
     vertical-align: top;
     color: white;
@@ -56,11 +64,11 @@ body {
 }
 
 .screen {
-    border: 1px solid red;
+    border: 0px solid red;
 }
 
-.win31screen {
-    border: 1px solid yellow;
+.win31subscreen {
+    border: 0px solid yellow;
     max-width: 100%;
     max-height: 100%;
 }
@@ -157,7 +165,6 @@ body {
 
 .alert{
     display:none;
- 
 }
 
 .title-scan, .seconds{
@@ -183,8 +190,7 @@ body {
     text-align:center;
 }
 
-.fullscreenimg{
-
+.fullscreen {
   z-index: -999;
   min-height: 100%;
   min-width: 1024px;
@@ -195,8 +201,12 @@ body {
   left: 0;
 }
 
+#victoryscreen {
+    color: orange;
+}
+
 .vertical-center {
-    min-height: 100%;
+  min-height: 100%;
   /* Make it a flex container */
   display: -webkit-box;
   display: -moz-box;
