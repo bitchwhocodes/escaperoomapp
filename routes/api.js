@@ -7,10 +7,18 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express'});
 });
 
-router.post('/password',function(req,res,next){
-    var returnValue = (req.body.user==config.USERNAME && req.body.pass==config.PASSWORD)?"1":"0";
-    res.send(returnValue);
-})
+router.post('/password', function(req, res, next) {
+	console.log(req.body);
+	if (req.body.username != config.USERNAME) {
+		return res.send({"result": "wrong_username", "username": req.body.username});
+	}
+	
+	if (req.body.password != config.PASSWORD) {
+		return res.send({"result": "wrong_password"});
+	}
+	
+	return res.send({"result": "success"});
+});
 
 router.post('/ergo',function(req,res,next){
     var returnValue = (req.body.ergo==config.ERGO)?"1":"0";
@@ -18,10 +26,12 @@ router.post('/ergo',function(req,res,next){
 })
 
 router.post('/pin',function(req,res,next){
-
-    var returnValue = (req.body.pin==config.PIN)?"1":"0";
-    res.send(returnValue);
+    if (req.body.pin == config.PIN) {
+        return res.send({"result": "success"});
+    }
+    return res.send({"result": "wrong_pin", "pin": req.body.pin});
 })
+
 /*
 router.post('/clippy',function(req,res,next){
     //

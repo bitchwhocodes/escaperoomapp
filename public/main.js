@@ -1,109 +1,123 @@
-        // need to put this in a closure
-
 $(document).ready(function(){
-        //States 
-        const STATE_LOGIN = 0;
-        const STATE_PIN = 1;
-        const STATE_ERGO = 2;
-        const STATE_HAND = 3;
-        const STATE_SUCCESS = 4;
-        const STATE_FAIL = 5;
+        // Setup
+        var DEBUG_MODE = true;
+        var clippyEndPoint = "http://localhost:3001";
+
+        const PromptMaxLength = 40;
+        const PromptMaxLines = 20;
+
+        // Timers
+        var startTime;
+        const TimeLimit = 45*60; // 45 minutes
+        const ClippyTimer = DEBUG_MODE ? 1000 : 120*1000; // Time for clippy to start helping.
+        const HalBeepingRate = 3500; // milliseconds
+        const LoadTransitionTime = DEBUG_MODE ? 2000 : 20000; // milliseconds
+        const IllegalOperationTimeout = DEBUG_MODE ? 3000 : 10000; // milliseconds
+        const CommandPromptDelay = DEBUG_MODE ? 1000 : 10000;
         
+		// Clippy Messages
+		const welcome = {"message": "Welcome to Cl.0@2#%d^&*443-0-4fdsg*j--+33jj", "icon":"note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const noUserPass = {"message": "Hey, there. Do you even know how to use a computer? <b>You have to type a username and a password!</b>", "icon": "keyboard.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const noUserWithPass = {"message": "You gotta type in a username, genius.", "icon": "keyboard.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		const rightUsername = {"message": "<b>{usernames}</b>. What were you thinking?", "icon": "none", "sound": "Clippy_TransformToCheckMark.wav"};
+		const TooManyWrongUsernames = {"message": "You know there is a <b>pattern</b>, right?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+        const TooManyWrongPasswords = {"message": "Do you know how to <b>sum</b>?", "icon": "note.png", "sound": "Clippy_TransformToCheckMark.wav"};
+        const BobTakingOverMessage = {"message": "Hey, there. Bob is corrupting itself to subvert the system. I'll see if I can load a command prompt!", "icon": "console_prompt.png", "sound": "Clippy_TransformToCheckMark.wav"};
+		
+        // State
+		var triedBlankUserPass = false;
+		var triedBlankUserWithPass = false;
+		
+		const WrongUsernameHintThreshold = DEBUG_MODE ? 3 : 7;
+		var wrongUsernameTries = 0;
+		
+		const usernameHistoryMaxCount = 6;
+		var usernameHistory = [];
+		var foundRightUsername = false;
+		
+		const WrongPasswordHintThreshold = DEBUG_MODE ? 3 : 7;
+        var wrongPasswordTries = 0;
+        
+		const IllegalDialogClicksThreshold = DEBUG_MODE ? 2 : 4;
+        var illegalDialogClicks = 0;
+        var launchedCommandPrompt = false;
+        
+        var halBeeper;
 
-        var clippyEndPoint = "http://clippypi:3000";
-        // TIMER Interval
-        var timeInterval=null;
-        var timeSeconds = 60;
-        var errorTimes = 0;
-        var state = 0;
-
-        // AUDIO 
-        var errorAudio = new Audio('sounds/CHORD.WAV');//wav is not the way to do things..
+        // Audio 
+        var errorAudio = new Audio('sounds/CHORD.WAV'); //wav is not the way to do things..
         var successAudio = new Audio('sounds/CHIMES.WAV');
         var failedAudio = new Audio('sounds/DING.WAV');
-       
-       
-        /*
-            SOCKET COMMUNICATION ---------------------------------------------
-         */
+        var startupAudio = new Audio('sounds/win-startup.wav');
+        var halBeepAudio = new Audio('sounds/hal-beep.wav');
+       	
+        /* SOCKET COMMUNICATION */
         var socket = io();
+		
         // Will be fired when we see the hand near it. 
         socket.on('authenticated', function (data) {
-            // Stacey - We need to make sure we are in the right state to see this
             if(state == STATE_HAND)
             {
-                if(data.response ==1){
+                if(data.response ==1) {
                     doAuthentication();
-                }else{
-                    //doHumanHand();
+                } else {
+                    //doHumanHand(); // Not working
                 }
             }
-            //IF WE ARE ON THE CORRECT SCREEN && WE HAVE AUTHENTICATION, WE CAN MOVE ON.
+        });
+        
+        $("#halscreen").show();
+        $("#loadscreen").hide();
+        $("#loginscreen").hide();
+        $("#pinscreen").hide();
+        $("#illegalopscreen").hide();
+        $("#phonefactorscreen").hide();
+        $("#promptscreen").hide();
+        $("#ergoscreen").hide();
+        $("#win31screen").hide();
+
+        sendMessageToClippy(welcome);
+        startTimer();
+        startAnimations();
+        setCommandPrompt();
+        startTimeouts();
+
+		// Form Events
+		$("#loginform").submit(function (event) {
+			event.preventDefault();
+            processLogin($("#username").val(), $("#password").val());
+        });
+		
+		$("#pinform").submit(function (event) {
+			event.preventDefault();
+            processPin($("#pin").val());
+        });
+		
+		$("#ergoform").submit(function (event) {
+			event.preventDefault();
+            processErgo(processPin($("#ergo").val()));
         });
 
-        //Started using Vanilla JS = added bootstrap after so could use jquery i suppose
-        // Reference to elements we need. 
-        var loginScreen = document.getElementById("loginscreen");
-        var pinScreen = document.getElementById("pinscreen");
-        var ergoScreen = document.getElementById("ergoscreen");
-        var handScreen = document.getElementById("handscreen");
-        var failScreen = document.getElementById("failscreen");
-        var successScreen = document.getElementById("successscreen");
-
-        //var screens = [loginScreen, pinScreen, ergoScreen, handScreen, failScreen];
-        var screens =[{'name':'login','state':STATE_LOGIN,'screen':loginScreen}];
-        screens.push({'name':'pin','state':STATE_PIN,'screen':pinScreen});
-        screens.push({'name':'ergo','state':STATE_ERGO,'screen':ergoScreen});
-        screens.push({'name':'hand','state':STATE_HAND,'screen':handScreen});
-        screens.push({'name':'success','state':STATE_SUCCESS,'screen':successScreen})
-        screens.push({'name':'fail','state':STATE_FAIL,'screen':failScreen});
+		// Other
+        // $('input').focus(function(obj){
+        //     $('.alert').fadeOut(500);
+        // })
         
+        function transition(currentScreen, nextScreen, delay, soundEffect, callback) {
+            return currentScreen.fadeOut(delay/2, function() {
+                if (soundEffect) {
+                    soundEffect.play();
+                }
 
-        //ITEMS
-        var errorItem = document.getElementById("errors");
-        var username = document.getElementById("username");
-        var password = document.getElementById("password");
-        var pin = document.getElementById("pin")
-        var ergo = document.getElementById("ergo");
+                if (callback) {
+                    callback();
+                }
 
-        //buttons
-        var pinForm = document.getElementById("pinform");
-        var ergoForm = document.getElementById("ergoform");
-
-
-        var loginSubmit = document.getElementById("loginform");
-    
-        // Login Submit - 
-        loginSubmit.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processLogin();
-            return false;
+                return nextScreen.fadeIn(delay/2);
+            });
         }
-
-         
-        ergoForm.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processErgo();
-            return false;
-        }
-
-        pinForm.onsubmit = function (eventObject) {
-            eventObject.stopPropagation();
-            eventObject.stopImmediatePropagation();
-            processPin();
-            return false;
-
-        };
-
-         $('input').focus(function(obj){
-            $('.alert').fadeOut(500);
-        })
-
-
         
-
+		// End Puzzle
         function showFailure(){
             showScreen(STATE_FAIL);
             //failedAudio.play();
@@ -113,133 +127,197 @@ $(document).ready(function(){
             showScreen(STATE_SUCCESS);
         }
 
+        // Calls
+        // Logic @ Login Screen
+        function processLogin(username, password) {
+            console.log("Username: " + username);
+			console.log("Password: " + password);
+			
+			if (!username.length && !password.length) {
+				if (!triedBlankUserPass)
+				{
+                    triedBlankUserPass = true;
+					sendMessageToClippy(noUserPass);
+				}
+                
+                return transition($("#loginscreen"), $("#loginscreen"), 1000, errorAudio, function() {
+                    var errorMessage = "Ooops! Enter in a username or password!";
+                    console.log("Error: " + errorMessage)
+                    $(".login-error").show();
+                    $(".login-error").text(errorMessage);
+                });
+			}
+			else if (!username.length && password.length) {
+				if (!triedBlankUserWithPass)
+				{
+                    triedBlankUserWithPass = true;
+					sendMessageToClippy(noUserWithPass);
+                }
+                
+                return transition($("#loginscreen"), $("#loginscreen"), 1000, errorAudio, function() {
+                    var errorMessage = "Ooops! Enter in a username!";
+                    console.log("Error: " + errorMessage)
+                    $(".login-error").fadeIn(100);
+                    $(".login-error").text(errorMessage);
+                });
+			}
+			else {
+				$.post("api/password", {"username": username, "password": password})
+				.done(function(data) {
+					console.log(data);
+					switch(data.result) {
+                        case "success":
+                            return transition($("#loginscreen"), $("#pinscreen"), 1000, successAudio);
+							
+						case "wrong_username":
+							if (!foundRightUsername)
+							{
+								usernameHistory.push(data.username);
+								
+								// Clean up history
+								if (usernameHistory.length > usernameHistoryMaxCount) {
+									usernameHistory.shift();
+								}
+							
+								// Hint
+								wrongUsernameTries++;
+								
+								if (wrongUsernameTries >= WrongUsernameHintThreshold) {
+									wrongUsernameTries = 0;
+									sendMessageToClippy(TooManyWrongUsernames);
+								}
+							}
+                            
+                            return transition($("#loginscreen"), $("#loginscreen"), 1000, errorAudio, function() {
+                                var errorMessage = "Ooops! Wrong Username!";
+                                console.log("Error: " + errorMessage)
+                                $(".login-error").fadeIn(100);
+                                $(".login-error").text(errorMessage)
+                            });
+							
+						case "wrong_password":
+							// Show usernames flavor
+							if (!foundRightUsername && wrongUsernameTries > 0)
+							{
+								rightUsername.message = rightUsername.message.replace("{usernames}", usernameHistory.join(", "));
+                                foundRightUsername = true;
+                                sendMessageToClippy(rightUsername);
+							}
+							
+							// Hint
+							wrongPasswordTries++;
+							
+							if (wrongPasswordTries >= WrongPasswordHintThreshold) {
+								wrongPasswordTries = 0;
+								sendMessageToClippy(TooManyWrongPasswords);
+                            }
+                            
+							return transition($("#loginscreen"), $("#loginscreen"), 1000, errorAudio, function() {
+                                var errorMessage = "Ooops! Wrong Password!";
+                                console.log("Error: " + errorMessage)
+                                $(".login-error").fadeIn(100);
+                                $(".login-error").text(errorMessage);
+                            });
+             
+						default:
+							console.log("Something went wrong");
+					}
+				});
+			}
+        }
 
+        // Logic @ Pin Screen
+        function processPin(pin) {
+            console.log("PIN: " + pin);
 
-        //CALLS
-        function processLogin() {
-            var user = username.value;
-            var pass = password.value;
-            // Could put in robust validation here, but is it necessary?
-            //sendMessageToClippy();
-            
-            if (user.length && pass.length) {
-                validateUserPass(user, pass);
-            } else {
-                //errorItem.innerHTML = "ERROR"
-                showError("Ooops!Enter in a username or password!");
-                //incrementError();
+            if (!pin.length) {
+                return transition($("#pinscreen"), $("#pinscreen"), 1000, errorAudio, function() {
+                    var errorMessage = "Enter a valid PIN number!";
+                    console.log("Error: " + errorMessage)
+                    $(".pin-error").show();
+                    $(".pin-error").text(errorMessage);
+                });
+            }
+            else {
+                $.post("api/pin", { "pin": pin })
+                    .done(function(data) {
+                        console.log(data);
+                        switch(data.result) {
+                            case "success":
+                                return transition($("#pinscreen"), $("#phonefactorscreen"), 1000, successAudio, function() {
+                                    setTimeout(processPhone, IllegalOperationTimeout)
+                                });
+                            case "wrong_pin":
+                                return transition($("#pinscreen"), $("#pinscreen"), 1000, errorAudio, function() {
+                                    var errorMessage = "Incorrect PIN!";
+                                    console.log("Error: " + errorMessage)
+                                    $(".pin-error").show();
+                                    $(".pin-error").text(errorMessage);
+                                });
+                            default:
+                                console.log("Something went wrong");
+                        }
+				    });
             }
         }
 
-        function validateUserPass(user, pass) {
-            var params = "user=" + user + "&pass=" + pass;
-            var xhr = new sendRequest('api/password', 'POST', params);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    //Failure
-                    if (xhr.responseText == "0") {
-                        showError("Ooops!Incorrect Password");
-                    } else {
-                        nextScreen();
-                    }
-                }
-            }
-        }
-        function nextScreen() {
+        // Logic @ Phone Factor Screen 
+        function processPhone() {
+            var paddingleft = 0;
+            var paddingtop = 0;
 
-            successAudio.play();
-            
-            state++;
+            var showIllegalOp = function () {
+                errorAudio.play();
+                var newIllegalBox = $(`
+                <div class='window illegapopdialog' style="margin-left: ` + paddingleft + `px; margin-top: ` + paddingtop + `px">
+                    <div class='header'>
+                        <img class='icon' src='icons/windows.png' srcset='icons/windows.png 32w, icons/windows.png 64w' /> bob-9000.exe
+                    </div>
+    
+                    <div class='content'>
+                        <img class='contenticon' src="icons/msg_error.png" />
+                        <div class="contentbuttons">
+                            <button class='contentbutton'>Close</button>
+                            <br>
+                            <br>
+                            <br>
+                            <button class='contentbutton'>Details>></button>
+                        </div>
+                        This program has performed an illegal operation and will be shut down.<br><br> If the problem persists,
+                        contact the program vendor.
+                    </div>
+                </div>`);
+                newIllegalBox.appendTo("#illegalopscreen");
+                newIllegalBox.on('click', '.contentbutton', function(){ 
+                    illegalDialogClicks++;
+                    if (illegalDialogClicks > IllegalDialogClicksThreshold) {
+                        sendMessageToClippy(BobTakingOverMessage);
+                        illegalDialogClicks = 0;
 
-            if(state> screens.length-1){return;}//SM to account for this. 
-                for (var i = 0; i < screens.length; i++) {
-                    var screen = $(screens[i].screen);
-                    if (i == state) {
-                        // I hate myself for jquery
-                        screen.removeClass('hide').addClass('active');
-                    } else {
-                        screen.removeClass('active').addClass('hide');
-                    }
-                }
-        }
-
-        function showScreen(screenState){
-            for (var i = 0; i < screens.length; i++) {
-                    var screen = $(screens[i].screen);
-                    var name = screens[i].state;
-                    if (name == screenState) {
-                        // I hate myself for jquery
-                        state = screenState;
-                        screen.removeClass('hide').addClass('active');
-                    } else {
-                        screen.removeClass('active').addClass('hide');
-                    }
-                }
-
-        }
-        // need to edit this
-        function showError(error) {
-            //TODO - show a label
-           // errorItem.innerHTML = error;
-           console.log("Error",error)
-           var item = null;
-           errorAudio.play();
-           switch(state){
-            case 0:
-                item = $('.login-error');
-                break;
-            case 1 : 
-                item = $('.pin-error');
-                break;
-
-            case 2:
-                item =$('.ergo-error');
-                break;
-
-           }
-       
-            item.fadeIn(100);
-            
-            item.text(error);
-            incrementError();
-        }
-
-       
-
-        /*Need different headers for json */
-
-        
-      
-       
-
-        
-        /* PROCESS PIN 
-            Called to submit the form data on the process pin screen. 
-        */
-        function processPin() {
-            if (pin.value.length) {
-                var params = "pin=" + pin.value;
-                var xhr = new sendRequest('api/pin', 'POST', params);
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState == 4 && xhr.status == 200) {
-                        //Failure
-                        if (xhr.responseText == "0") {
-                            showError("Incorrect Pin");
-                        } else {
-                            //Success
-                            //errorItem.innerHTML = "YAY"
-                            nextScreen();
+                        console.log("Launching prompt...");
+                        if (!launchedCommandPrompt)
+                        {
+                            launchedCommandPrompt = true;
+                            setTimeout(function() {
+                                console.log("Prompt started!");
+                                $("#promptscreen").show();
+                            }, CommandPromptDelay);
                         }
                     }
-                }
-            } else {
-                // need to fix
-                incrementError();
 
-            }
+                    return showIllegalOp();
+                });
+
+                paddingleft += 20;
+                paddingtop += 10;
+            };
+
+            showIllegalOp();
+
+            return $("#illegalopscreen").show();
         }
 
-       
+        // Logic @ Command Prompt
 
         function processErgo() {
             if (ergo.value.length) {
@@ -259,7 +337,7 @@ $(document).ready(function(){
                         }
                     }
                 }
-            }else{
+            } else {
                 incrementError();
             }
         }
@@ -269,11 +347,10 @@ $(document).ready(function(){
             var xhr = new XMLHttpRequest();
             xhr.open(type, url);
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            xhr.setRequestHeader("Content-length", params.length);
-            xhr.setRequestHeader("Connection", "close");
+            //xhr.setRequestHeader("Content-length", params.length);
+            //xhr.setRequestHeader("Connection", "close");
             xhr.send(params);
             return xhr;
-
         }
 
 
@@ -287,53 +364,15 @@ $(document).ready(function(){
              sendHandMessage();
              setTimer();
         }
-        // 3 ERRORS for the form 
-        // Can send a message to Clippy 
-        function incrementError() {
-            console.log("error times"+errorTimes)
-            if (errorTimes == 2) {
-                errorTimes = 0;
-                var message = getErrorMessage();
-                //console.log("Increment Error:message"+message);
-                sendMessageToClippy(clippyEndPoint+"/message",{'message':message})
-            }else{
-                errorTimes++;
-            }
-            
-        }
-
-        /* Get Error Message for CLIPPY 
-            need to put in other states 
-         */
-        function getErrorMessage(){
-            var errorMessage ;
-            switch(state){
-                case STATE_LOGIN:
-                    errorMessage ="It looks like you are having problems logging on";
-                    break;
-                case STATE_PIN:
-                    errorMessage = "WHERE IS YOUR PIN YO";
-                    break;
-                case STATE_ERGO = " Ergonomics error";
-                    break;                
-
-            }   
-            return(errorMessage);
-        }
-
-
-        
-       
 
         /* CLIPPY API
             Need to pass endpoint --> ie. clippyEndPoint+"/message";
             Need to pass data --> {'message':'put your message here'}
          */
-
-        function sendMessageToClippy(endPoint,data){
+        function sendMessageToClippy(data){
             console.log("Send Message");
             var xhr = new XMLHttpRequest();   // new HttpRequest instance 
-            xhr.open("POST", endPoint);
+            xhr.open("POST", clippyEndPoint + "/message");
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
             xhr.send(JSON.stringify(data));
@@ -358,37 +397,140 @@ $(document).ready(function(){
            showSuccess();
         }
 
-       
-        /* setTimer 
-            Starts an interval for the timer countdown 
-        */
-        function setTimer(){
-                timerInterval = setInterval(doTime, 1000);
+        // Pad string
+        function PadLeft(string, pad, length) {
+            return (new Array(length + 1).join(pad) + string).slice(-length);
         }
-        /*
-            doTime
-            Checks to see if there is seconds left ( starts at 60 )
-        */ 
-        function doTime(){
-            timeSeconds--;
-           
 
-            if(timeSeconds==0){
-                clearInterval(timerInterval);
-                showFailure();
+        // Start global timer
+        function startTimer() {
+            startTime = Date.now();
+            setInterval(function() {
+                var diff = Math.floor((Date.now() - startTime) / 1000);
+                var timeLeft = TimeLimit - diff;
+                var m = Math.floor(timeLeft / 60);
+                var s = timeLeft - m * 60;
+                $('#countdown-timer').html(PadLeft(m, '0', 2) + ":" + PadLeft(s, '0', 2));
+            }, 1000); // Update ~ every second
+        }
+
+        function startTimeouts() {
+            setTimeout(function() {
+                if (halBeeper)
+                    clearInterval(halBeeper);
+
+                return transition($("#halscreen"), $("#loadscreen"), LoadTransitionTime, startupAudio, function() {
+                    return setTimeout(function() { 
+                        return transition($("#loadscreen"), $("#loginscreen"), 1000, null, function() {
+                            $("#win31screen").show();
+                        }); 
+                    }, 2000);
+                });
+            }, ClippyTimer)
+        }
+
+        function setCommandPrompt() {
+            $(document).click(function() {
+                $('#command').focus();    
+            });
+
+            $('#command').focus();
+
+            $(document).keypress(function(event) {
+                if (event.key === "Enter")
+                {
+                    event.preventDefault();
+                    $("#command").attr("contenteditable","false");
+                    $("#command").off();
+
+                    console.log("Running command: " + $("#command").text());
+                    processCommandPrompt($("#command").text());
+
+                    $("#command").attr("id","command-completed");
+                    $("#prompt").append(`<div id="prompt-input">C:\\><span contenteditable="true" id="command"></span></div>`)
+                    
+                    $("#command").on('keydown paste', function(event) {
+                        var keypressed = event.keyCode;
+                        if ( keypressed === 8 || keypressed === 27 || keypressed === 46  || (keypressed >= 35 && keypressed <= 40) ) {
+                            return;
+                        }
+        
+                        if ((keypressed >=65 && keypressed <= 90) || (keypressed >=48 && keypressed <= 57) || (keypressed >= 96 && keypressed <= 105)){
+                            if ($(this).text().length >= PromptMaxLength)
+                            {
+                                event.preventDefault();
+                            }
+                            return;
+                        }
+                        
+                        if (event.key === "Enter")
+                        {
+                            return;
+                        }
+        
+                        return event.preventDefault();
+                    });
+
+                    while ($('#prompt div').length > PromptMaxLines) {
+                        $('#prompt').find('div').first().remove();
+                    }
+                    
+                    $('#command').focus();
+                }
+            });
+
+            $("#command").on('keydown paste', function(event) {
+                var keypressed = event.keyCode;
+                if ( keypressed === 8 || keypressed === 27 || keypressed === 46  || (keypressed >= 35 && keypressed <= 40) ) {
+                    return;
+                }
+
+                if ((keypressed >=65 && keypressed <= 90) || (keypressed >=48 && keypressed <= 57) || (keypressed >= 96 && keypressed <= 105) 
+                    || keypressed == 32
+                    || keypressed == 189
+                    || keypressed == 187){
+                    if ($(this).text().length >= PromptMaxLength)
+                    {
+                        event.preventDefault();
+                    }
+                    return;
+                }
+
+                if (event.key === "Enter")
+                {
+                    return;
+                }
+
+                return event.preventDefault();
+            });
+        }
+
+        function processCommandPrompt(command) {
+            if (command === "help") {
+                $("#prompt").append("<div>Commands available:</div>");
+                $("#prompt").append("<div><br></div>");
+                $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;help</div>");
+                $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;info</div>");
+                $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;me</div>");
+                $("#prompt").append("<div>&emsp;&emsp;&emsp;&emsp;shutdown</div>");
+                $("#prompt").append("<div><br></div>");
             }
-
-            var seconds = pad(timeSeconds);
-             $('.seconds').text("00:00:"+seconds);
         }
-        function pad(seconds){
-            var sec = seconds.toString();
-            if(sec.length==1){
-                return("0"+sec)
-            }else{
-                return(sec);
+
+        function startAnimations() {
+            if (!DEBUG_MODE) {
+                halBeeper = setInterval(function(){
+                    halBeepAudio.play();
+               }, HalBeepingRate);
             }
-            //return( (seconds.length <2 )? ("0"+seconds.toString() ) : seconds.toString());
-        }
+            
+            var dotsCounter = 0;
 
+            setInterval(function() {
+                $("#dots").text("Calling" + ".".repeat(dotsCounter));
+                dotsCounter++;
+                if (dotsCounter > 10) 
+                    dotsCounter = 0;
+            }, 700);
+        }
 });
