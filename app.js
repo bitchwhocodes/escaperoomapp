@@ -28,9 +28,6 @@ app.use(cookieParser());
 app.use('/', index);
 app.use('/api',api);
 
-
-
-
 io.on('connection', function (socket) {
 
   socket.on('hand',function(socket){

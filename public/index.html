@@ -7,30 +7,69 @@
     <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/bootstrap/css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel='stylesheet' href='win98.css'>
 
 </head>
+
 <body>
-   
-    <div class="container">
-       
-        <div id="loginscreen" class="container screen vertical-center">
-            <form class="form-signin" id="loginform">
-                <h2 class="form-signin-heading">Please sign in</h2>
-                <input id="username" class="input-block-level" type="text" placeholder="User Name">
-                <input id="password" class="input-block-level" type="password" placeholder="Password">
-                <div class="alert alert-error login-error" class="hide"></div>
-                <button id="login" class="btn btn-large btn-primary" type="submit">Submit</button>
-            </form>
+    <div id="countdown-timer">45:00</div>
+
+    <div id="halscreen" class="screen vertical-center">
+        <img id="hal" src="images/hal.png" />
+    </div>
+
+    <div id="loadscreen" class="screen vertical-center">
+        <img id="win31" src="images/win31.jpg" />
+    </div>
+
+    <div id="promptscreen" class="screen vertical-center win98">
+        <div class='window'>
+            <div class='header'>
+                <img class='icon' src='icons/exe.gif' srcset='icons/exe@2x.gif 32w, icons/exe@4x.gif 64w' /> Command Prompt
+            </div>
+
+            <div id='prompt'>
+               <div>Microsoft(R) Windows NT(TM)</div>
+               <div>(C) Copyright 1985-1995 Microsoft Corp.</div>
+               <div><br></div>
+               <div id="prompt-input">C:\><span contenteditable="true" id="command"></span></div>
+            </div>
         </div>
-        <div id="pinscreen" class="container screen vertical-center">
+    </div>
+
+    <div id="win31screen" class="screen">
+        <div class="win31title">Microsoft Windows 3.1 Clippy Edition<br>════════════════════════════════════</div>
+
+        <div id="loginscreen" class="screen">
+            <div class="vertical-center">
+                <form class="form-signin" id="loginform">
+                    <h2 class="form-signin-heading">Please sign in</h2>
+                    <input id="username" class="input-block-level" type="text" placeholder="User Name">
+                    <input id="password" class="input-block-level" type="password" placeholder="Password">
+                    <div class="alert alert-error login-error" class="hide"></div>
+                    <button id="login" class="btn btn-large btn-primary screen-button" type="submit">Submit</button>
+                </form>
+            </div>
+        </div>
+        <div id="pinscreen" class="screen vertical-center">
             <form class="form-signin" id="pinform">
                 <h2 class="form-signin-heading">Enter your pin</h2>
                 <input id="pin" class="input-block-level" type="text" placeholder="PIN">
                 <div class="alert alert-error pin-error" class="hide"></div>
-                <button id="pinsubmit" class="btn btn-large btn-primary" type="submit">Submit Pin</button>
+                <button id="pinsubmit" class="btn btn-large btn-primary screen-button" type="submit">Submit Pin</button>
             </form>
         </div>
-        <div id="ergoscreen" class="container screen vertical-center">
+        <div id="phonefactorscreen" class="screen vertical-center">
+            <form class="form-signin" id="phoneform">
+                <img id="phone" class="center" src="images/phone.png" />
+                <h2 class="form-signin-heading">Your Admin requires phone<br>factor authentication.<br>
+                    <div id="dots">Calling...</div>
+                </h2>
+                <div class="alert alert-error phone-error" class="hide"></div>
+                <button id="phoneretry" class="btn btn-large btn-primary screen-button disabled" type="submit">Retry</button>
+            </form>
+        </div>
+        <div id="ergoscreen" class="screen vertical-center">
             <form class="form-signin" id="ergoform">
                 <h2 class="form-signin-heading">Ergonomics challenge</h2>
                 <p> Time to make all the right moves for this next authentication code</p>
@@ -39,25 +78,26 @@
                 <button id="ergosubmit" class="btn btn-large btn-primary" type="submit">Verify Pin</button>
             </form>
         </div>
+        <div id="illegalopscreen" class="vertical-center win98"></div>
+
+        <div id="handscreen" class="hand hide">
+            <h1 class="title-scan">Please Scan Hand for Authentication!!</h1>
+            <p class="seconds">00:1:00</p>
+            <img class="fullscreenimg" src="images/hand.gif" border=0>
+        </div>
+
+        <!-- TEMPORARY SCREEN FOR WHAT WE NEED -->
+        <div id="failscreen" class="windows hide">
+            <img class="fullscreenimg" src="images/fail.gif" border=0>
+        </div>
+        <div id="successscreen" class="windows hide">
+            <img class="fullscreenimg" src="images/dinocat.gif" border=0>
+        </div>
     </div>
 
-     <div id="handscreen" class="hand hide">
-           <h1 class="title-scan">Please Scan Hand for Authentication!!</h1>
-            <p class="seconds">00:1:00</p>
-           <img class="fullscreenimg" src="images/hand.gif" border=0>
-     </div>
-
-     <!-- TEMPORARY SCREEN FOR WHAT WE NEED -->
-     <div id="failscreen" class="windows hide">
-           <img class="fullscreenimg" src="images/fail.gif" border=0>
-     </div>
-     <div id="successscreen" class="windows hide">
-           <img class="fullscreenimg" src="images/dinocat.gif" border=0>
-     </div>
-    
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="bootstrap/js/bootstrap.min.js"></script>
-     <script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 
 </html>

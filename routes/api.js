@@ -26,10 +26,12 @@ router.post('/ergo',function(req,res,next){
 })
 
 router.post('/pin',function(req,res,next){
-
-    var returnValue = (req.body.pin==config.PIN)?"1":"0";
-    res.send(returnValue);
+    if (req.body.pin == config.PIN) {
+        return res.send({"result": "success"});
+    }
+    return res.send({"result": "wrong_pin", "pin": req.body.pin});
 })
+
 /*
 router.post('/clippy',function(req,res,next){
     //
